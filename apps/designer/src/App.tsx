@@ -132,7 +132,7 @@ export default function App() {
 
   return (
     <main className="flex h-screen min-h-[520px] flex-col overflow-hidden bg-background text-foreground">
-      <header className="flex h-16 shrink-0 items-center justify-between border-b bg-card px-5">
+      <header className="designer-top-pane z-20 flex h-16 shrink-0 items-center justify-between bg-card px-5">
         <div className="flex min-w-0 items-center gap-3">
           <div className="grid size-9 place-items-center rounded-xl bg-primary text-sm font-bold text-primary-foreground">
             A
@@ -162,7 +162,7 @@ export default function App() {
       </header>
 
       <div className="flex min-h-0 flex-1">
-        <aside className="z-10 flex w-60 shrink-0 flex-col gap-5 border-r bg-card p-4">
+        <aside className="designer-left-pane z-10 flex w-60 shrink-0 flex-col gap-5 bg-card p-4">
           <div>
             <h1 className="text-sm font-semibold">Build your workflow</h1>
             <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
