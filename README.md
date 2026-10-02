@@ -43,6 +43,12 @@ npm run build
 - The canvas starts with a sample **Start → AI Agent → End** workflow.
 - Add Start, End, LLM, If, Switch, HTTP Request, RAG, Code, and Approval nodes from
   the left palette. Connect nodes by dragging from one node handle to another.
+- Canvas nodes use a subtle raised-card treatment; selecting a node adds a visible
+  focus ring while retaining its shadow.
+- Connections follow node-type output rules: Start has one outgoing route and no
+  incoming routes, End has no outgoing route, If has separate True and Else routes,
+  Switch has one route per configured case plus Default, and other nodes have one
+  outgoing route. Each output route can be connected once.
 - Select a node to open its details drawer on the right. The drawer shows its type,
   ID, position, and connection count, and lets you edit its label and
   type-specific configuration.
@@ -114,7 +120,9 @@ packages/
   live in `components/ui/`; follow their established variants and accessibility
   patterns when adding controls.
 - Keep React Flow's required stylesheet imported by the application entry point.
-  Put project-specific node, edge, and canvas styling in the designer stylesheet.
+  Put project-specific node, edge, and canvas styling in `App.css`. Preserve React
+  Flow's positioning and interaction behavior when styling nodes; use shadows and
+  outlines for depth and selection rather than overriding its transforms.
 
 ### Workflow data
 
@@ -125,6 +133,9 @@ packages/
 - Add node types to `components/nodes/registry.ts` so the palette, color, defaults,
   and type-specific inspector fields have one source of truth. Use only node types
   permitted by the schema, and map friendly UI labels to their schema type there.
+- Define node output handles through `getNodeOutputs` in the registry. Enforce
+  connection limits in both the React Flow connection validator and the connect
+  callback; Start must not receive connections, and End must not emit them.
 - Give each node type its own appropriate configuration fields and sensible
   defaults. Keep configuration values under `node.data.config` so they can be
   translated to the schema's node `config` when workflow serialization is added.
@@ -133,12 +144,22 @@ packages/
 
 ## Software engineering guidance
 
-Use these as practical defaults for contributions to this repository:
+Follow this checklist when implementing or changing behavior:
 
+- **Understand before editing.** Read the relevant component, its callers, tests,
+  and nearby conventions first. Trace the behavior from input to output so the
+  change addresses the cause rather than only a visible symptom.
+- **Keep the change focused.** State the behavior being changed, make cohesive
+  edits, and avoid unrelated cleanup. Prefer a clear, direct solution over
+  speculative features or abstractions.
 - **Solve the current problem simply.** Prefer the smallest clear implementation
   that meets an observed requirement. Delay speculative extension points and
   abstractions until a real use case needs them; see Martin Fowler's explanation
   of [YAGNI](https://martinfowler.com/bliki/Yagni.html).
+- **Use patterns deliberately.** Check whether an existing pattern fits the
+  recurring problem, and weigh its trade-offs before introducing it. Do not add
+  layers, factories, interfaces, or indirection solely to make code appear
+  extensible; prefer the simplest design that remains easy to test and change.
 - **Keep one source of truth for UI state.** Derive values from existing React state
   instead of storing duplicate state. Keep data flow explicit, and move related,
   increasingly complex state transitions into a reducer only when that complexity
@@ -151,6 +172,15 @@ Use these as practical defaults for contributions to this repository:
   data with types, and avoid suppressing errors with broad casts. TypeScript's
   [Handbook](https://www.typescriptlang.org/docs/handbook/intro.html) explains its
   role in catching type errors before runtime.
+- **Validate at boundaries.** Treat user input, imported workflow files, and
+  external responses as untrusted. Validate them where they enter the system,
+  enforce workflow invariants in the UI and data layer, and do not rely on visual
+  controls alone for correctness.
+- **Make security part of implementation.** Minimize sensitive data, use
+  established platform APIs for encoding and validation, and avoid custom
+  cryptography or unsafe evaluation of user-provided code. Use the
+  [OWASP Cheat Sheet Series](https://cheatsheetseries.owasp.org/) for practical,
+  topic-specific security guidance.
 - **Handle failures visibly.** Surface validation, network, and execution failures
   through a clear error result or user-facing state. Don't silently discard errors
   or return success-shaped fallbacks.
@@ -160,10 +190,11 @@ Use these as practical defaults for contributions to this repository:
   Martin Fowler's [practical test pyramid](https://martinfowler.com/articles/practical-test-pyramid.html)
   discusses balancing test levels.
 - **Make changes reviewable.** Keep changes cohesive, preserve nearby conventions,
-  and verify them with the narrowest relevant checks (for example,
-  `npm run build`). Google's [code review standard](https://google.github.io/eng-practices/review/reviewer/standard.html)
-  emphasizes improving maintainability and overall code health rather than
-  demanding perfection.
+  update directly related documentation, and verify the exact behavior changed
+  with focused tests plus the relevant build or type check (for example,
+  `npm run build`). Review the final diff for unintended changes. Google's
+  [code review standard](https://google.github.io/eng-practices/review/reviewer/standard.html)
+  emphasizes maintainability and overall code health.
 
 ## Design patterns
 
@@ -195,6 +226,8 @@ For pattern definitions and trade-offs, see the
 [design-pattern catalog](https://refactoring.guru/design-patterns/catalog).
 Its [overview](https://refactoring.guru/design-patterns/what-is-pattern) describes
 patterns as adaptable solutions rather than copy-and-paste code.
+Use the examples above as guidance for where a pattern may fit this project, not
+as a requirement to introduce every listed pattern.
 
 ## Engine status
 
@@ -212,6 +245,8 @@ before documenting or relying on an engine start command.
   types and compiler behavior.
 - [Google Engineering Practices: Code Review Standard](https://google.github.io/eng-practices/review/reviewer/standard.html) —
   maintainability and review principles.
+- [OWASP Cheat Sheet Series](https://cheatsheetseries.owasp.org/) — practical
+  application-security guidance organized by topic.
 - [Martin Fowler: YAGNI](https://martinfowler.com/bliki/Yagni.html) — avoid
   speculative features and abstractions.
 - [Martin Fowler: Practical Test Pyramid](https://martinfowler.com/articles/practical-test-pyramid.html) —

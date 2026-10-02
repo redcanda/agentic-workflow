@@ -4,6 +4,7 @@ import {
   Background,
   BackgroundVariant,
   Controls,
+  MarkerType,
   MiniMap,
   ReactFlow,
   useEdgesState,
@@ -16,7 +17,9 @@ import { Button } from './components/ui/button';
 import { Drawer } from './components/drawer/drawer';
 import './App.css';
 import { Node as NodeDetails } from './components/nodes/node';
+import { WorkflowCanvasNode } from './components/nodes/workflow-canvas-node';
 import {
+  getNodeOutputs,
   isWorkflowNodeType,
   NODE_DEFINITIONS,
   WORKFLOW_NODE_TYPES,
@@ -24,10 +27,19 @@ import {
 } from './components/nodes/registry';
 import type { WorkflowNodeData } from './components/nodes/node';
 
+const edgeArrow = {
+  type: MarkerType.Arrow,
+  width: 14,
+  height: 14,
+  color: 'var(--primary)',
+};
+
+const nodeTypes = { workflow: WorkflowCanvasNode };
+
 const initialNodes: Node<WorkflowNodeData>[] = [
   {
     id: 'start',
-    type: 'input',
+    type: 'workflow',
     position: { x: 80, y: 170 },
     data: {
       label: NODE_DEFINITIONS.start.label,
@@ -38,6 +50,7 @@ const initialNodes: Node<WorkflowNodeData>[] = [
   },
   {
     id: 'agent',
+    type: 'workflow',
     position: { x: 360, y: 170 },
     data: {
       label: NODE_DEFINITIONS.agent.label,
@@ -48,7 +61,7 @@ const initialNodes: Node<WorkflowNodeData>[] = [
   },
   {
     id: 'end',
-    type: 'output',
+    type: 'workflow',
     position: { x: 640, y: 170 },
     data: {
       label: NODE_DEFINITIONS.end.label,
@@ -60,8 +73,20 @@ const initialNodes: Node<WorkflowNodeData>[] = [
 ];
 
 const initialEdges: Edge[] = [
-  { id: 'start-agent', source: 'start', target: 'agent', animated: true },
-  { id: 'agent-end', source: 'agent', target: 'end', animated: true },
+  {
+    id: 'start-agent',
+    source: 'start',
+    sourceHandle: 'next',
+    target: 'agent',
+    markerEnd: edgeArrow,
+  },
+  {
+    id: 'agent-end',
+    source: 'agent',
+    sourceHandle: 'next',
+    target: 'end',
+    markerEnd: edgeArrow,
+  },
 ];
 
 const nodeOptions = WORKFLOW_NODE_TYPES.map((type) => NODE_DEFINITIONS[type]);
@@ -70,29 +95,73 @@ export default function App() {
   const [nodes, setNodes, onNodesChange] = useNodesState<Node<WorkflowNodeData>>(initialNodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
   const [workflowName, setWorkflowName] = useState('Untitled workflow');
+  const [connectionError, setConnectionError] = useState<{
+    nodeId: string;
+    message: string;
+  } | null>(null);
   const nextNodeId = useRef(1);
   const selectedEdgeCount = edges.filter((edge) => edge.selected).length;
   const selectedNode = nodes.find((node) => node.selected);
 
-  const onConnect = useCallback(
-    (connection: Connection) => {
-      setEdges((currentEdges) =>
-        addEdge({ ...connection, animated: true }, currentEdges),
+  const isConnectionValid = useCallback(
+    (connection: Connection | Edge) => {
+      const source = nodes.find((node) => node.id === connection.source);
+      const target = nodes.find((node) => node.id === connection.target);
+
+      if (
+        !source ||
+        !target ||
+        !isWorkflowNodeType(source.data.nodeType) ||
+        !isWorkflowNodeType(target.data.nodeType) ||
+        target.data.nodeType === 'start'
+      ) {
+        return false;
+      }
+
+      const outputs = getNodeOutputs(source.data.nodeType, source.data.config);
+      const sourceHandle =
+        connection.sourceHandle ??
+        (outputs.length === 1 ? outputs[0].id : undefined);
+
+      if (!sourceHandle || !outputs.some((output) => output.id === sourceHandle)) {
+        return false;
+      }
+
+      return !edges.some(
+        (edge) =>
+          edge.id !== ('id' in connection ? connection.id : undefined) &&
+          edge.source === connection.source &&
+          (edge.sourceHandle ?? 'next') === sourceHandle,
       );
     },
-    [setEdges],
+    [edges, nodes],
+  );
+
+  const onConnect = useCallback(
+    (connection: Connection) => {
+      if (!isConnectionValid(connection)) return;
+
+      setEdges((currentEdges) =>
+        addEdge(
+          {
+            ...connection,
+            markerEnd: edgeArrow,
+          },
+          currentEdges,
+        ),
+      );
+    },
+    [isConnectionValid, setEdges],
   );
 
   const addNode = (type: WorkflowNodeType) => {
     const definition = NODE_DEFINITIONS[type];
     const id = `${type}-${nextNodeId.current++}`;
-    const flowType = type === 'start' ? 'input' : type === 'end' ? 'output' : 'default';
-
     setNodes((currentNodes) => [
       ...currentNodes,
       {
         id,
-        type: flowType,
+        type: 'workflow',
         position: { x: 180 + currentNodes.length * 36, y: 80 + (currentNodes.length % 4) * 90 },
         data: {
           label: definition.label,
@@ -108,6 +177,7 @@ export default function App() {
     setNodes([]);
     setEdges([]);
     setWorkflowName('Untitled workflow');
+    setConnectionError(null);
     nextNodeId.current = 1;
   };
 
@@ -130,6 +200,26 @@ export default function App() {
   const updateSelectedNodeConfig = (key: string, value: string | number) => {
     if (!selectedNode) return;
 
+    const config = { ...selectedNode.data.config, [key]: value };
+    if (
+      selectedNode.data.nodeType === 'switch' &&
+      key === 'cases' &&
+      edges.some(
+        (edge) =>
+          edge.source === selectedNode.id &&
+          !getNodeOutputs(selectedNode.data.nodeType, config).some(
+            (output) => output.id === (edge.sourceHandle ?? 'next'),
+          ),
+      )
+    ) {
+      setConnectionError({
+        nodeId: selectedNode.id,
+        message: 'Disconnect routes for removed cases before changing the Switch cases.',
+      });
+      return;
+    }
+
+    setConnectionError(null);
     setNodes((currentNodes) =>
       currentNodes.map((node) =>
         node.id === selectedNode.id
@@ -137,7 +227,7 @@ export default function App() {
               ...node,
               data: {
                 ...node.data,
-                config: { ...node.data.config, [key]: value },
+                config,
               },
             }
           : node,
@@ -146,6 +236,7 @@ export default function App() {
   };
 
   const closeNodeDetails = () => {
+    setConnectionError(null);
     setNodes((currentNodes) =>
       currentNodes.map((node) => (node.selected ? { ...node, selected: false } : node)),
     );
@@ -220,9 +311,11 @@ export default function App() {
           <ReactFlow
             nodes={nodes}
             edges={edges}
+            nodeTypes={nodeTypes}
             onNodesChange={onNodesChange}
             onEdgesChange={onEdgesChange}
             onConnect={onConnect}
+            isValidConnection={isConnectionValid}
             deleteKeyCode={['Backspace', 'Delete']}
             fitView
             fitViewOptions={{ padding: 0.25 }}
@@ -246,6 +339,9 @@ export default function App() {
         {selectedNode && (
           <Drawer>
             <NodeDetails
+              connectionError={
+                connectionError?.nodeId === selectedNode.id ? connectionError.message : null
+              }
               edges={edges}
               node={selectedNode}
               onConfigChange={updateSelectedNodeConfig}

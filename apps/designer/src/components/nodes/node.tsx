@@ -12,6 +12,7 @@ export type WorkflowNodeData = {
 type NodeDetailsProps = {
   node: FlowNode<WorkflowNodeData>;
   edges: Edge[];
+  connectionError: string | null;
   onLabelChange: (label: string) => void;
   onConfigChange: (key: string, value: string | number) => void;
   onClose: () => void;
@@ -82,6 +83,7 @@ function ConfigFieldInput({ field, value, onChange }: ConfigFieldProps) {
 export function Node({
   node,
   edges,
+  connectionError,
   onLabelChange,
   onConfigChange,
   onClose,
@@ -125,6 +127,11 @@ export function Node({
               {definition.description}
             </p>
           </div>
+          {connectionError && (
+            <p className="text-xs leading-relaxed text-destructive" role="alert">
+              {connectionError}
+            </p>
+          )}
 
           <label className="block space-y-1.5">
             <span className="text-xs font-medium text-muted-foreground">Label</span>

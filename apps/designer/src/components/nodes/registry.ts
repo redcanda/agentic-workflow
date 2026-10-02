@@ -36,6 +36,11 @@ export type NodeDefinition = {
   fields: ConfigField[];
 };
 
+export type NodeOutput = {
+  id: string;
+  label: string;
+};
+
 export const NODE_DEFINITIONS: Record<WorkflowNodeType, NodeDefinition> = {
   start: {
     type: 'start',
@@ -230,4 +235,31 @@ export const WORKFLOW_NODE_TYPES: WorkflowNodeType[] = [
 
 export function isWorkflowNodeType(value: unknown): value is WorkflowNodeType {
   return typeof value === 'string' && Object.prototype.hasOwnProperty.call(NODE_DEFINITIONS, value);
+}
+
+export function getNodeOutputs(type: WorkflowNodeType, config: NodeConfig): NodeOutput[] {
+  switch (type) {
+    case 'end':
+      return [];
+    case 'condition':
+      return [
+        { id: 'true', label: 'True' },
+        { id: 'else', label: 'Else' },
+      ];
+    case 'switch': {
+      const cases = String(config.cases ?? '')
+        .split('\n')
+        .map((value) => value.trim())
+        .filter(Boolean);
+      const occurrences = new Map<string, number>();
+      const outputs = cases.map((value) => {
+        const occurrence = occurrences.get(value) ?? 0;
+        occurrences.set(value, occurrence + 1);
+        return { id: `case-${encodeURIComponent(value)}-${occurrence}`, label: value };
+      });
+      return [...outputs, { id: 'default', label: 'Default' }];
+    }
+    default:
+      return [{ id: 'next', label: 'Next' }];
+  }
 }

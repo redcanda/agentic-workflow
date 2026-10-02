@@ -1,0 +1,27 @@
+.workflow-canvas-node-label {
+  display: block;
+  text-align: center;
+}
+
+.workflow-canvas-output {
+  position: absolute;
+  bottom: 0;
+  display: flex;
+  justify-content: center;
+  width: 0;
+  height: 0;
+}
+
+.workflow-canvas-output-label {
+  position: absolute;
+  top: 0.45rem;
+  color: var(--muted-foreground);
+  font-size: 0.625rem;
+  font-weight: 500;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.workflow-canvas-output-handle {
+  left: 0;
+}
