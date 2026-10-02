@@ -1,0 +1,27 @@
+.react-flow__node {
+  min-width: 130px;
+  border: 1px solid var(--border);
+  border-radius: 0.75rem;
+  background: var(--card);
+  padding: 0.85rem 1rem;
+  color: var(--foreground);
+  font-size: 0.875rem;
+  font-weight: 600;
+  box-shadow: 0 4px 14px rgb(15 23 42 / 7%);
+}
+
+.react-flow__node.selected {
+  box-shadow: 0 0 0 2px var(--ring), 0 4px 14px rgb(15 23 42 / 7%);
+}
+
+.react-flow__handle {
+  width: 0.55rem;
+  height: 0.55rem;
+  border: 2px solid var(--card);
+  background: var(--primary);
+}
+
+.react-flow__edge-path {
+  stroke: var(--primary);
+  stroke-width: 2;
+}

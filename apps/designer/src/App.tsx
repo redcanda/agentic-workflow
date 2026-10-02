@@ -14,6 +14,8 @@ import {
 } from '@xyflow/react';
 import { Button } from './components/ui/button';
 import { Drawer } from './components/drawer/drawer';
+import './App.css';
+import { Node as NodeComponent } from './components/nodes/node';
 
 type WorkflowNodeType = 'start' | 'agent' | 'condition' | 'http' | 'end';
 
@@ -222,16 +224,19 @@ export default function App() {
 
         {selectedNode && (
           <Drawer
-            edges={edges}
-            node={selectedNode}
-            nodeType={
-              selectedNodeType
-                ? nodeOptions.find(({ type }) => type === selectedNodeType)?.label ?? selectedNodeType
-                : selectedNode.type ?? 'Workflow node'
-            }
-            onClose={closeNodeDetails}
-            onLabelChange={updateSelectedNodeLabel}
-          />
+          >
+            <NodeComponent
+              edges={edges}
+              node={selectedNode}
+              nodeType={
+                selectedNodeType
+                  ? nodeOptions.find(({ type }) => type === selectedNodeType)?.label ?? selectedNodeType
+                  : selectedNode.type ?? 'Workflow node'
+              }
+              onClose={closeNodeDetails}
+              onLabelChange={updateSelectedNodeLabel}
+            />
+          </Drawer>
         )}
       </div>
     </main>
