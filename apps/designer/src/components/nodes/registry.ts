@@ -9,7 +9,7 @@ export type WorkflowNodeType =
   | 'code'
   | 'approval';
 
-export type ConfigValue = string | number;
+export type ConfigValue = string | number | string[];
 export type NodeConfig = Record<string, ConfigValue>;
 
 type BaseConfigField = {
@@ -20,7 +20,7 @@ type BaseConfigField = {
 };
 
 export type ConfigField =
-  | (BaseConfigField & { kind: 'text' | 'textarea' })
+  | (BaseConfigField & { kind: 'text' | 'textarea' | 'list' })
   | (BaseConfigField & { kind: 'number'; min?: number; max?: number; step?: number })
   | (BaseConfigField & {
       kind: 'select';
@@ -117,15 +117,15 @@ export const NODE_DEFINITIONS: Record<WorkflowNodeType, NodeDefinition> = {
     label: 'Switch',
     description: 'Route by matching a value',
     color: '#eab308',
-    config: { value: '', cases: '' },
+    config: { value: '', cases: [] },
     fields: [
       { key: 'value', kind: 'text', label: 'Value to match', placeholder: '{{input.value}}' },
       {
         key: 'cases',
-        kind: 'textarea',
+        kind: 'list',
         label: 'Cases',
-        placeholder: 'One case value per line',
-        description: 'Create one outgoing route for each case.',
+        placeholder: 'Case value',
+        description: 'Add one outgoing route for each case.',
       },
     ],
   },
@@ -247,8 +247,11 @@ export function getNodeOutputs(type: WorkflowNodeType, config: NodeConfig): Node
         { id: 'else', label: 'Else' },
       ];
     case 'switch': {
-      const cases = String(config.cases ?? '')
-        .split('\n')
+      const configuredCases = config.cases;
+      const cases = (Array.isArray(configuredCases)
+        ? configuredCases
+        : String(configuredCases ?? '').split('\n')
+      )
         .map((value) => value.trim())
         .filter(Boolean);
       const occurrences = new Map<string, number>();

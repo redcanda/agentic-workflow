@@ -22,6 +22,7 @@ import {
   isWorkflowNodeType,
   NODE_DEFINITIONS,
   WORKFLOW_NODE_TYPES,
+  type ConfigValue,
   type WorkflowNodeType,
 } from './components/nodes/registry';
 import type { WorkflowNodeData } from './components/nodes/node';
@@ -210,7 +211,7 @@ export default function App() {
     );
   };
 
-  const updateSelectedNodeConfig = (key: string, value: string | number) => {
+  const updateSelectedNodeConfig = (key: string, value: ConfigValue) => {
     if (!selectedNode) return;
 
     const config = { ...selectedNode.data.config, [key]: value };

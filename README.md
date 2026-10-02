@@ -1,7 +1,7 @@
 # agentic-workflow
 
 Visual workflow designer and Python execution-engine project. The designer is an
-early scaffold; the engine and workflow persistence/API integration are not yet
+early scaffold; workflow file/API persistence and the execution engine are not yet
 implemented.
 
 ## Technology
@@ -11,6 +11,7 @@ implemented.
 - **Engine:** Python (implementation and dependency setup pending).
 - **Workflow format:** JSON validated against
   [`packages/workflow-schema/schema.json`](./packages/workflow-schema/schema.json).
+  The JSON Schema is the source of truth for the persisted workflow format.
 
 ## Prerequisites
 
@@ -52,6 +53,9 @@ npm run build
   Switch has one route per configured case plus Default, and other nodes have one
   outgoing route. Each output route can be connected once. If and Switch edge labels
   identify the branch used by each connection.
+- Configure Switch cases as individual values in the node details; add or remove
+  case rows to control the node's outgoing routes. Case values are stored as an
+  array in the Switch node's config.
 - Select a node to open its details drawer on the right. The drawer shows its type,
   ID, position, and connection count, and lets you edit its label and
   type-specific configuration.
@@ -65,7 +69,11 @@ npm run build
 The designer maps **LLM** to the schema's `agent` type and **If** to `condition`.
 Each node's editable settings are held in its `config` object. The schema allows
 type-specific configuration as an object but does not yet validate individual config
-fields.
+fields. The typed persisted model and React Flow adapters are in
+[`apps/designer/src/workflow/workflow.ts`](apps/designer/src/workflow/workflow.ts).
+The adapters keep canvas-only properties out of workflow JSON and preserve labels,
+configuration, edge branch handles, and edge labels. Node labels are optional in the
+schema for compatibility with workflows that predate editable labels.
 
 ## Project layout
 
@@ -76,7 +84,9 @@ apps/
       components/
         drawer/       Resizable node-details panel
         nodes/        Node type registry and type-specific detail fields
-        ui/           Reusable UI components
+        ui/           Reusable UI controls, including the editable list input
+      workflow/
+        workflow.ts   Persisted workflow types and React Flow adapters
       App.tsx         Designer layout and workflow state
       App.css         Designer and React Flow canvas styles
       index.css       Tailwind setup, theme tokens, and global reset
@@ -174,6 +184,13 @@ Follow this checklist when implementing or changing behavior:
 - **Make boundaries explicit.** Validate workflow JSON at import/API boundaries.
   Keep React Flow's interactive canvas state separate from the persisted workflow
   format; map between them explicitly rather than saving library-specific fields.
+- **Keep the workflow schema in sync.** Whenever a change adds, removes, or
+  modifies persisted workflow fields or their constraints, update
+  [`packages/workflow-schema/schema.json`](./packages/workflow-schema/schema.json)
+  in the same change. Keep the TypeScript workflow types, serialization/loading
+  adapters, and example workflows consistent with that schema, and verify that
+  representative workflow JSON validates against it. Changes limited to
+  editor-only state do not require a schema update.
 - **Preserve type safety.** Keep TypeScript strict, describe component and workflow
   data with types, and avoid suppressing errors with broad casts. TypeScript's
   [Handbook](https://www.typescriptlang.org/docs/handbook/intro.html) explains its
@@ -215,10 +232,10 @@ otherwise prefer straightforward functions and components.
   React Flow state already owned by the application. Inspector fields should
   receive their current value and report edits through callbacks rather than
   maintaining a competing copy.
-- **Adapter / boundary mapper (workflow format):** When persistence is added,
-  explicitly translate between React Flow nodes/edges and the schema's workflow
-  JSON. This keeps editor-only data out of saved files and makes schema evolution
-  easier to validate.
+- **Adapter / boundary mapper (workflow format):** Translate between React Flow
+  nodes/edges and the schema's workflow JSON through the typed conversion helpers.
+  This keeps editor-only data out of saved files. Update the schema, adapters, and
+  examples together whenever the persisted format changes.
 - **Strategy (engine node execution):** If node implementations need different
   execution algorithms behind the same contract, use a typed node-handler
   interface and dispatch by node type. Keep handlers independently testable; avoid

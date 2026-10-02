@@ -1,6 +1,15 @@
+import { useLayoutEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import type { Edge, Node as FlowNode } from '@xyflow/react';
-import { NODE_DEFINITIONS, type ConfigField, type NodeConfig, type WorkflowNodeType } from './registry';
+import {
+  NODE_DEFINITIONS,
+  type ConfigField,
+  type ConfigValue,
+  type NodeConfig,
+  type WorkflowNodeType,
+} from './registry';
 import { Button } from '../ui/button';
+import { ListInput } from '../ui/list-input';
 import './node.css';
 
 export type WorkflowNodeData = {
@@ -14,19 +23,95 @@ type NodeDetailsProps = {
   edges: Edge[];
   connectionError: string | null;
   onLabelChange: (label: string) => void;
-  onConfigChange: (key: string, value: string | number) => void;
+  onConfigChange: (key: string, value: ConfigValue) => void;
   onClose: () => void;
 };
 
 type ConfigFieldProps = {
   field: ConfigField;
-  value: string | number;
-  onChange: (value: string | number) => void;
+  value: ConfigValue;
+  onChange: (value: ConfigValue) => void;
 };
+
+function FieldHelp({ label, description }: { label: string; description: string }) {
+  const triggerRef = useRef<HTMLSpanElement>(null);
+  const tooltipRef = useRef<HTMLSpanElement>(null);
+  const [isVisible, setIsVisible] = useState(false);
+  const [position, setPosition] = useState({ left: 0, top: 0 });
+
+  useLayoutEffect(() => {
+    if (!isVisible || !triggerRef.current || !tooltipRef.current) return;
+
+    const trigger = triggerRef.current.getBoundingClientRect();
+    const tooltip = tooltipRef.current.getBoundingClientRect();
+    setPosition({
+      left: Math.max(8, Math.min(trigger.left, window.innerWidth - tooltip.width - 8)),
+      top: Math.max(8, Math.min(trigger.top - tooltip.height - 6, window.innerHeight - tooltip.height - 8)),
+    });
+  }, [isVisible]);
+
+  return (
+    <>
+      <span
+        onBlur={() => setIsVisible(false)}
+        onFocus={() => setIsVisible(true)}
+        onMouseEnter={() => setIsVisible(true)}
+        onMouseLeave={() => setIsVisible(false)}
+        ref={triggerRef}
+      >
+        <Button
+          aria-label={`Help for ${label}`}
+          className="node-list-field-help-trigger size-5 rounded-full p-0 text-xs text-muted-foreground"
+          type="button"
+          variant="ghost"
+        >
+          i
+        </Button>
+      </span>
+      {isVisible &&
+        createPortal(
+          <span
+            className="node-list-field-help-tooltip"
+            ref={tooltipRef}
+            role="tooltip"
+            style={position}
+          >
+            {description}
+          </span>,
+          document.body,
+        )}
+    </>
+  );
+}
 
 function ConfigFieldInput({ field, value, onChange }: ConfigFieldProps) {
   const className =
     'w-full rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring';
+
+  if (field.kind === 'list') {
+    return (
+      <div className="space-y-1.5">
+        <div className="node-list-field-heading">
+          <span className="text-xs font-medium text-muted-foreground">{field.label}</span>
+          {field.description && (
+            <FieldHelp description={field.description} label={field.label} />
+          )}
+        </div>
+        <ListInput
+          label={field.label}
+          onChange={onChange}
+          placeholder={field.placeholder}
+          value={
+            Array.isArray(value)
+              ? value
+              : String(value)
+                ? String(value).split('\n')
+                : []
+          }
+        />
+      </div>
+    );
+  }
 
   return (
     <label className="block space-y-1.5">
@@ -61,7 +146,7 @@ function ConfigFieldInput({ field, value, onChange }: ConfigFieldProps) {
           placeholder={field.placeholder}
           step={field.kind === 'number' ? field.step : undefined}
           type={field.kind === 'number' ? 'number' : 'text'}
-          value={value}
+          value={String(value)}
           onChange={(event) =>
             onChange(
               field.kind === 'number' && event.target.value !== ''

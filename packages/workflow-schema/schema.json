@@ -49,6 +49,9 @@
             "approval"
           ]
         },
+        "label": {
+          "type": "string"
+        },
         "position": {
           "type": "object",
           "required": ["x", "y"],

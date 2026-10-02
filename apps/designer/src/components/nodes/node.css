@@ -2,3 +2,37 @@
   min-height: 5rem;
   resize: vertical;
 }
+
+.node-list-field-heading {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+}
+
+.node-list-field-help {
+  position: relative;
+  display: inline-flex;
+}
+
+.node-list-field-help-trigger {
+  border: 1px solid var(--border);
+  font-family: Georgia, serif;
+  font-style: italic;
+}
+
+.node-list-field-help-tooltip {
+  position: fixed;
+  z-index: 1000;
+  width: max-content;
+  max-width: 16rem;
+  border: 1px solid var(--border);
+  border-radius: 0.5rem;
+  background: var(--card);
+  padding: 0.5rem 0.625rem;
+  color: var(--foreground);
+  font-size: 0.75rem;
+  font-weight: 400;
+  line-height: 1.4;
+  pointer-events: none;
+  box-shadow: 0 4px 12px rgb(15 23 42 / 14%);
+}
