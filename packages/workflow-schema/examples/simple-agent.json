@@ -1,0 +1,45 @@
+{
+  "version": 1,
+  "name": "Simple AI Agent",
+  "nodes": [
+    {
+      "id": "start",
+      "type": "start",
+      "position": {
+        "x": 0,
+        "y": 100
+      }
+    },
+    {
+      "id": "agent",
+      "type": "agent",
+      "position": {
+        "x": 300,
+        "y": 100
+      },
+      "config": {
+        "prompt": "Respond helpfully to the user's request."
+      }
+    },
+    {
+      "id": "end",
+      "type": "end",
+      "position": {
+        "x": 600,
+        "y": 100
+      }
+    }
+  ],
+  "edges": [
+    {
+      "id": "start-to-agent",
+      "source": "start",
+      "target": "agent"
+    },
+    {
+      "id": "agent-to-end",
+      "source": "agent",
+      "target": "end"
+    }
+  ]
+}

@@ -9,10 +9,14 @@ Engine
 - python
 
 ## Running
-Terminal 1
+### Terminal 1
+```
 cd apps/designer
 npm run dev
+```
 
-Terminal 2
+### Terminal 2
+```
 cd apps/engine
 uvicorn app.main:app --reload
+```
