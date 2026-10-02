@@ -43,7 +43,9 @@ npm run build
 
 - The canvas starts with a sample **Start → AI Agent → End** workflow.
 - Add Start, End, LLM, If, Switch, HTTP Request, RAG, Code, and Approval nodes from
-  the left palette. Connect nodes by dragging from one node handle to another.
+  the left palette by dragging them onto the canvas; clicking a palette item adds
+  it using the default placement. Connect nodes by dragging from one node handle
+  to another.
 - Canvas nodes use a subtle raised-card treatment; selecting a node adds a visible
   focus ring while retaining its shadow.
 - Canvas nodes display the editable label first and node type beneath it, except
@@ -56,6 +58,9 @@ npm run build
 - Configure Switch cases as individual values in the node details; add or remove
   case rows to control the node's outgoing routes. Case values are stored as an
   array in the Switch node's config.
+- Define the Start node's input payload as a JSON Schema object by adding
+  properties, selecting their types (including **Any** for unconstrained values),
+  and marking required fields.
 - Select a node to open its details drawer on the right. The drawer shows its type,
   ID, position, and connection count, and lets you edit its label and
   type-specific configuration.
@@ -84,7 +89,7 @@ apps/
       components/
         drawer/       Resizable node-details panel
         nodes/        Node type registry and type-specific detail fields
-        ui/           Reusable UI controls, including the editable list input
+        ui/           Reusable controls, including editable lists and JSON Schema input
       workflow/
         workflow.ts   Persisted workflow types and React Flow adapters
       App.tsx         Designer layout and workflow state

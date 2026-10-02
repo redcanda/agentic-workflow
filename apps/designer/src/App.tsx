@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useRef, useState, type DragEvent } from 'react';
 import {
   addEdge,
   Background,
@@ -11,11 +11,13 @@ import {
   type Connection,
   type Edge,
   type Node,
+  type ReactFlowInstance,
 } from '@xyflow/react';
 import { Button } from './components/ui/button';
 import { Drawer } from './components/drawer/drawer';
 import './App.css';
 import { Node as NodeDetails } from './components/nodes/node';
+import { NodeTypeIcon } from './components/nodes/node-type-icon';
 import { WorkflowCanvasNode } from './components/nodes/workflow-canvas-node';
 import {
   getNodeOutputs,
@@ -28,6 +30,7 @@ import {
 import type { WorkflowNodeData } from './components/nodes/node';
 
 const edgeArrow = 'workflow-edge-arrow';
+const workflowNodeTransferType = 'application/workflow-node';
 
 const nodeTypes = { workflow: WorkflowCanvasNode };
 
@@ -90,10 +93,12 @@ export default function App() {
   const [nodes, setNodes, onNodesChange] = useNodesState<Node<WorkflowNodeData>>(initialNodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
   const [workflowName, setWorkflowName] = useState('Untitled workflow');
+  const [isLeftPaneOpen, setIsLeftPaneOpen] = useState(true);
   const [connectionError, setConnectionError] = useState<{
     nodeId: string;
     message: string;
   } | null>(null);
+  const flowInstance = useRef<ReactFlowInstance<Node<WorkflowNodeData>, Edge> | null>(null);
   const nextNodeId = useRef(1);
   const selectedEdgeCount = edges.filter((edge) => edge.selected).length;
   const selectedNode = nodes.find((node) => node.selected);
@@ -168,7 +173,10 @@ export default function App() {
     [isConnectionValid, nodes, setEdges],
   );
 
-  const addNode = (type: WorkflowNodeType) => {
+  const addNode = (
+    type: WorkflowNodeType,
+    position?: { x: number; y: number },
+  ) => {
     const definition = NODE_DEFINITIONS[type];
     const id = `${type}-${nextNodeId.current++}`;
     setNodes((currentNodes) => [
@@ -176,7 +184,9 @@ export default function App() {
       {
         id,
         type: 'workflow',
-        position: { x: 180 + currentNodes.length * 36, y: 80 + (currentNodes.length % 4) * 90 },
+        position:
+          position ??
+          { x: 180 + currentNodes.length * 36, y: 80 + (currentNodes.length % 4) * 90 },
         data: {
           label: definition.label,
           nodeType: type,
@@ -185,6 +195,77 @@ export default function App() {
         style: { borderColor: definition.color },
       },
     ]);
+  };
+
+  const handleNodeDragStart = (
+    event: DragEvent<HTMLButtonElement>,
+    type: WorkflowNodeType,
+  ) => {
+    event.dataTransfer.setData(workflowNodeTransferType, type);
+    event.dataTransfer.effectAllowed = 'copy';
+
+    const definition = NODE_DEFINITIONS[type];
+    const preview = document.createElement('div');
+    preview.className = 'react-flow__node workflow-drag-preview';
+    preview.style.borderColor = definition.color;
+    preview.style.left = '-10000px';
+    preview.style.top = '-10000px';
+
+    if (type !== 'start') {
+      const input = document.createElement('span');
+      input.className = 'workflow-drag-preview-handle workflow-drag-preview-input';
+      preview.append(input);
+    }
+
+    const content = document.createElement('div');
+    content.className = 'workflow-canvas-node-content';
+
+    const label = document.createElement('span');
+    label.className = 'workflow-canvas-node-label';
+    label.textContent = definition.label;
+    content.append(label);
+
+    if (type !== 'start' && type !== 'end') {
+      const nodeType = document.createElement('span');
+      nodeType.className = 'workflow-canvas-node-type';
+      nodeType.textContent = definition.label;
+      content.append(nodeType);
+    }
+    preview.append(content);
+
+    const outputs = getNodeOutputs(type, definition.config);
+    outputs.forEach((_, index) => {
+      const handle = document.createElement('span');
+      handle.className = 'workflow-drag-preview-handle workflow-drag-preview-output';
+      handle.style.left = `${((index + 1) / (outputs.length + 1)) * 100}%`;
+      preview.append(handle);
+    });
+
+    document.body.append(preview);
+    event.dataTransfer.setDragImage(
+      preview,
+      preview.offsetWidth / 2,
+      preview.offsetHeight / 2,
+    );
+    window.setTimeout(() => preview.remove(), 0);
+  };
+
+  const handleCanvasDragOver = (event: DragEvent<HTMLElement>) => {
+    if (!event.dataTransfer.types.includes(workflowNodeTransferType)) return;
+
+    event.preventDefault();
+    event.dataTransfer.dropEffect = 'copy';
+  };
+
+  const handleCanvasDrop = (event: DragEvent<HTMLElement>) => {
+    event.preventDefault();
+    const type = event.dataTransfer.getData(workflowNodeTransferType);
+    if (!isWorkflowNodeType(type) || !flowInstance.current) return;
+
+    addNode(
+      type,
+      flowInstance.current.screenToFlowPosition({ x: event.clientX, y: event.clientY }),
+    );
   };
 
   const clearWorkflow = () => {
@@ -262,7 +343,7 @@ export default function App() {
         <div className="flex min-w-0 items-center gap-3">
           <div className="grid size-9 place-items-center rounded-xl bg-primary text-sm font-bold text-primary-foreground">
             A
-          </div>
+        </div>
           <div className="min-w-0">
             <p className="text-xs font-medium text-muted-foreground">WORKFLOW DESIGNER</p>
             <input
@@ -288,40 +369,97 @@ export default function App() {
       </header>
 
       <div className="flex min-h-0 flex-1">
-        <aside className="designer-left-pane z-10 flex w-60 shrink-0 flex-col gap-5 bg-card p-4">
-          <div>
-            <h1 className="text-sm font-semibold">Build your workflow</h1>
-            <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
-              Add steps to the canvas, then connect them by dragging between handles.
-            </p>
-          </div>
-          <div className="space-y-2">
-            <h2 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-              Nodes
-            </h2>
-            {nodeOptions.map(({ type, label, color }) => (
-              <Button
-                className="w-full justify-start gap-2"
-                key={type}
-                onClick={() => addNode(type)}
-                variant="outline"
-              >
-                <span
-                  aria-hidden="true"
-                  className="size-2.5 rounded-full"
-                  style={{ backgroundColor: color }}
-                />
-                {label}
-                <span className="ml-auto text-muted-foreground">+</span>
-              </Button>
-            ))}
-          </div>
-          <div className="mt-auto rounded-lg border bg-muted/50 p-3 text-xs leading-relaxed text-muted-foreground">
-            Tip: drag from a node handle to another node to create a connection.
-          </div>
-        </aside>
+        <div
+          className={`designer-left-pane-slot${isLeftPaneOpen ? ' is-open' : ''}`}
+          id="node-palette"
+        >
+          <aside
+            aria-hidden={!isLeftPaneOpen}
+            className="designer-left-pane z-10 flex h-full w-60 flex-col gap-5 bg-card p-4"
+            inert={!isLeftPaneOpen}
+          >
+            <div>
+              <h1 className="text-sm font-semibold">Build your workflow</h1>
+              <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
+                Add steps to the canvas, then connect them by dragging between handles.
+              </p>
+            </div>
+            <div className="space-y-2">
+              <h2 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                Nodes
+              </h2>
+              {nodeOptions.map(({ type, label, color, description }) => (
+                <Button
+                  aria-label={`${label}: ${description}. Drag onto the canvas to add.`}
+                  className="palette-node"
+                  draggable
+                  key={type}
+                  onClick={() => addNode(type)}
+                  onDragStart={(event) => handleNodeDragStart(event, type)}
+                  style={{
+                    borderColor: `color-mix(in oklch, ${color} 24%, var(--border))`,
+                  }}
+                  title={`${description} — drag onto the canvas to add`}
+                  variant="outline"
+                >
+                  <span
+                    aria-hidden="true"
+                    className="node-type-icon-badge"
+                    style={{
+                      backgroundColor: `color-mix(in oklch, ${color} 13%, var(--card))`,
+                      color,
+                    }}
+                  >
+                    <NodeTypeIcon type={type} />
+                  </span>
+                  <span className="palette-node-copy">
+                    <span className="palette-node-label">{label}</span>
+                    <span className="palette-node-description">{description}</span>
+                  </span>
+                  <svg
+                    aria-hidden="true"
+                    className="palette-node-grip"
+                    fill="currentColor"
+                    viewBox="0 0 12 18"
+                  >
+                    <circle cx="3" cy="3" r="1.2" />
+                    <circle cx="9" cy="3" r="1.2" />
+                    <circle cx="3" cy="9" r="1.2" />
+                    <circle cx="9" cy="9" r="1.2" />
+                    <circle cx="3" cy="15" r="1.2" />
+                    <circle cx="9" cy="15" r="1.2" />
+                  </svg>
+                </Button>
+              ))}
+            </div>
+            <div className="mt-auto rounded-lg border bg-muted/50 p-3 text-xs leading-relaxed text-muted-foreground">
+              Tip: drag from a node handle to another node to create a connection.
+            </div>
+          </aside>
+          <Button
+            aria-controls="node-palette"
+            aria-expanded={isLeftPaneOpen}
+            aria-label={isLeftPaneOpen ? 'Collapse node palette' : 'Expand node palette'}
+            className="designer-left-pane-toggle"
+            onClick={() => setIsLeftPaneOpen((open) => !open)}
+            variant="outline"
+          >
+            <svg aria-hidden="true" fill="none" viewBox="0 0 24 24">
+              {isLeftPaneOpen ? (
+                <path d="m14.5 5-7 7 7 7" />
+              ) : (
+                <path d="m9.5 5 7 7-7 7" />
+              )}
+            </svg>
+          </Button>
+        </div>
 
-        <section aria-label="Workflow canvas" className="min-w-0 flex-1">
+        <section
+          aria-label="Workflow canvas"
+          className="min-w-0 flex-1"
+          onDragOver={handleCanvasDragOver}
+          onDrop={handleCanvasDrop}
+        >
           <svg aria-hidden="true" className="designer-svg-definitions">
             <defs>
               <marker
@@ -346,6 +484,9 @@ export default function App() {
             </defs>
           </svg>
           <ReactFlow
+            onInit={(instance) => {
+              flowInstance.current = instance;
+            }}
             nodes={nodes}
             edges={edges}
             nodeTypes={nodeTypes}

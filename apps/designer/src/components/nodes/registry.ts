@@ -9,7 +9,16 @@ export type WorkflowNodeType =
   | 'code'
   | 'approval';
 
-export type ConfigValue = string | number | string[];
+export type SchemaPropertyType = 'string' | 'number' | 'boolean' | 'null';
+export type SchemaPropertyValue = { type: SchemaPropertyType } | Record<string, never>;
+export type JsonSchemaObject = {
+  type: 'object';
+  properties: Record<string, SchemaPropertyValue>;
+  required?: string[];
+  additionalProperties: false;
+};
+
+export type ConfigValue = string | number | string[] | JsonSchemaObject;
 export type NodeConfig = Record<string, ConfigValue>;
 
 type BaseConfigField = {
@@ -21,6 +30,7 @@ type BaseConfigField = {
 
 export type ConfigField =
   | (BaseConfigField & { kind: 'text' | 'textarea' | 'list' })
+  | (BaseConfigField & { kind: 'schema' })
   | (BaseConfigField & { kind: 'number'; min?: number; max?: number; step?: number })
   | (BaseConfigField & {
       kind: 'select';
@@ -47,14 +57,21 @@ export const NODE_DEFINITIONS: Record<WorkflowNodeType, NodeDefinition> = {
     label: 'Start',
     description: 'Workflow entry point',
     color: '#10b981',
-    config: { inputName: 'input', inputDescription: '' },
+    config: {
+      inputName: 'input',
+      payload: {
+        type: 'object',
+        properties: {},
+        additionalProperties: false,
+      },
+    },
     fields: [
       { key: 'inputName', kind: 'text', label: 'Input name', placeholder: 'input' },
       {
-        key: 'inputDescription',
-        kind: 'textarea',
-        label: 'Input description',
-        placeholder: 'Describe the data provided to this workflow',
+        key: 'payload',
+        kind: 'schema',
+        label: 'Payload',
+        description: 'Define the input object properties for this workflow.',
       },
     ],
   },

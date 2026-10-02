@@ -8,6 +8,19 @@
       "position": {
         "x": 0,
         "y": 100
+      },
+      "config": {
+        "inputName": "input",
+        "payload": {
+          "type": "object",
+          "properties": {
+            "message": {
+              "type": "string"
+            }
+          },
+          "required": ["message"],
+          "additionalProperties": false
+        }
       }
     },
     {

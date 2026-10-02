@@ -1,0 +1,82 @@
+.schema-input {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.schema-input-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.schema-input-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.schema-input-property {
+  display: flex;
+  min-width: 0;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: 0.5rem;
+  background: var(--background);
+}
+
+.schema-input-name,
+.schema-input-type {
+  min-width: 0;
+  height: 2.25rem;
+  border: 0;
+  background: transparent;
+  padding: 0 0.625rem;
+  color: var(--foreground);
+  font-size: 0.75rem;
+  outline: none;
+}
+
+.schema-input-name {
+  flex: 1;
+}
+
+.schema-input-name:focus-visible,
+.schema-input-type:focus-visible {
+  box-shadow: inset 0 0 0 2px var(--ring);
+}
+
+.schema-input-type {
+  width: 5.5rem;
+  border-left: 1px solid var(--border);
+  text-transform: capitalize;
+}
+
+.schema-input-required {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  color: var(--muted-foreground);
+  font-size: 0.6875rem;
+  white-space: nowrap;
+}
+
+.schema-input-required input {
+  accent-color: var(--primary);
+}
+
+.schema-input-remove {
+  width: 2.25rem;
+}
+
+.schema-input-error {
+  grid-column: 1 / -1;
+  color: var(--destructive);
+  font-size: 0.6875rem;
+  line-height: 1.3;
+}
+
+.schema-input-property:has(.schema-input-name[aria-invalid="true"]) {
+  border-color: var(--destructive);
+}

@@ -1,5 +1,6 @@
 import type { Edge, Node } from '@xyflow/react';
 import type { WorkflowNodeData } from '../components/nodes/node';
+import { isJsonSchemaObject } from '../components/ui/schema-input';
 import {
   isWorkflowNodeType,
   NODE_DEFINITIONS,
@@ -199,7 +200,8 @@ function isNodeConfig(value: unknown): value is NodeConfig {
       (item) =>
         typeof item === 'string' ||
         (typeof item === 'number' && Number.isFinite(item)) ||
-        (Array.isArray(item) && item.every((entry) => typeof entry === 'string')),
+        (Array.isArray(item) && item.every((entry) => typeof entry === 'string')) ||
+        isJsonSchemaObject(item),
     )
   );
 }

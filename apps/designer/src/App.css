@@ -26,6 +26,151 @@
     inset -1px 0 0 rgb(255 255 255 / 65%);
 }
 
+.designer-left-pane-slot {
+  position: relative;
+  z-index: 10;
+  flex: none;
+  width: 0;
+  transition: width 180ms cubic-bezier(0.2, 0.75, 0.3, 1);
+}
+
+.designer-left-pane-slot.is-open {
+  width: 15rem;
+}
+
+.designer-left-pane-slot > .designer-left-pane {
+  overflow: hidden;
+  opacity: 0;
+  transform: translateX(-10px);
+  transition:
+    opacity 140ms ease,
+    transform 180ms cubic-bezier(0.2, 0.75, 0.3, 1),
+    visibility 0s linear 180ms;
+  visibility: hidden;
+}
+
+.designer-left-pane-slot.is-open > .designer-left-pane {
+  opacity: 1;
+  transform: translateX(0);
+  transition:
+    opacity 140ms ease 40ms,
+    transform 180ms cubic-bezier(0.2, 0.75, 0.3, 1),
+    visibility 0s;
+  visibility: visible;
+}
+
+.designer-left-pane-toggle {
+  position: absolute;
+  top: 1rem;
+  right: -2.5rem;
+  z-index: 20;
+  display: grid;
+  width: 2rem;
+  height: 2rem;
+  place-items: center;
+  padding: 0;
+  box-shadow: 2px 2px 8px rgb(15 23 42 / 12%);
+}
+
+.designer-left-pane-toggle svg {
+  width: 1rem;
+  height: 1rem;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.8;
+}
+
+.palette-node {
+  display: flex;
+  width: 100%;
+  min-height: 3.5rem;
+  height: auto;
+  justify-content: flex-start;
+  gap: 0.65rem;
+  border-radius: 0.75rem;
+  padding: 0.5rem 0.65rem;
+  text-align: left;
+  white-space: normal;
+  cursor: grab;
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 90%),
+    0 1px 2px rgb(15 23 42 / 5%);
+  transition:
+    background-color 140ms ease,
+    box-shadow 140ms ease,
+    transform 140ms ease;
+}
+
+.palette-node:hover {
+  background-color: color-mix(in oklch, var(--muted) 42%, var(--card));
+  box-shadow:
+    0 0 0 1px color-mix(in oklch, var(--border) 55%, transparent),
+    0 4px 10px -6px rgb(15 23 42 / 24%);
+  transform: translateY(-1px);
+}
+
+.palette-node:active {
+  cursor: grabbing;
+  transform: translateY(0);
+}
+
+.palette-node:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+}
+
+.palette-node-copy {
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.palette-node-label {
+  color: var(--foreground);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  line-height: 1.2;
+}
+
+.palette-node-description {
+  display: -webkit-box;
+  overflow: hidden;
+  color: var(--muted-foreground);
+  font-size: 0.6875rem;
+  font-weight: 400;
+  line-height: 1.3;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.palette-node-grip {
+  width: 0.75rem;
+  height: 1.125rem;
+  flex: none;
+  color: color-mix(in oklch, var(--muted-foreground) 65%, transparent);
+  transition: color 140ms ease;
+}
+
+.palette-node:hover .palette-node-grip {
+  color: var(--muted-foreground);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .designer-left-pane-slot,
+  .designer-left-pane-slot > .designer-left-pane,
+  .designer-left-pane-slot.is-open > .designer-left-pane {
+    transition: none;
+  }
+
+  .palette-node,
+  .palette-node-grip {
+    transition: none;
+  }
+}
+
 .react-flow__node {
   min-width: 130px;
   border: 1px solid color-mix(in oklch, var(--border) 72%, white);
@@ -73,6 +218,36 @@
   height: 0.55rem;
   border: 2px solid var(--card);
   background: var(--primary);
+}
+
+.workflow-drag-preview {
+  position: fixed !important;
+  z-index: 1000 !important;
+  width: max-content;
+  min-width: 130px;
+  max-width: 220px;
+  pointer-events: none;
+  transform: none !important;
+}
+
+.workflow-drag-preview-handle {
+  position: absolute;
+  z-index: 1;
+  width: 0.55rem;
+  height: 0.55rem;
+  border: 2px solid var(--card);
+  border-radius: 50%;
+  background: var(--primary);
+}
+
+.workflow-drag-preview-input {
+  top: -0.275rem;
+  left: calc(50% - 0.275rem);
+}
+
+.workflow-drag-preview-output {
+  bottom: -0.275rem;
+  margin-left: -0.275rem;
 }
 
 .react-flow__edge-path {

@@ -1,4 +1,4 @@
-import { useLayoutEffect, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import type { Edge, Node as FlowNode } from '@xyflow/react';
 import {
@@ -10,6 +10,12 @@ import {
 } from './registry';
 import { Button } from '../ui/button';
 import { ListInput } from '../ui/list-input';
+import {
+  isJsonSchemaObject,
+  SchemaInput,
+  type SchemaProperty,
+} from '../ui/schema-input';
+import { NodeTypeIcon } from './node-type-icon';
 import './node.css';
 
 export type WorkflowNodeData = {
@@ -32,6 +38,48 @@ type ConfigFieldProps = {
   value: ConfigValue;
   onChange: (value: ConfigValue) => void;
 };
+
+function getSchemaProperties(value: ConfigValue): SchemaProperty[] {
+  if (!isJsonSchemaObject(value)) return [];
+
+  const required = new Set(value.required ?? []);
+  return Object.entries(value.properties).map(([name, property]) => ({
+    name,
+    type: 'type' in property ? property.type : 'any',
+    required: required.has(name),
+  }));
+}
+
+function SchemaFieldInput({
+  field,
+  value,
+  onChange,
+}: ConfigFieldProps) {
+  const [properties, setProperties] = useState(() => getSchemaProperties(value));
+
+  useEffect(() => {
+    setProperties(getSchemaProperties(value));
+  }, [value]);
+
+  return (
+    <div className="space-y-1.5">
+      <span className="text-xs font-medium text-muted-foreground">{field.label}</span>
+      {field.description && (
+        <span className="block text-xs leading-relaxed text-muted-foreground">
+          {field.description}
+        </span>
+      )}
+      <SchemaInput
+        label={field.label}
+        onChange={(schema, nextProperties) => {
+          setProperties(nextProperties);
+          if (schema) onChange(schema);
+        }}
+        value={properties}
+      />
+    </div>
+  );
+}
 
 function FieldHelp({ label, description }: { label: string; description: string }) {
   const triggerRef = useRef<HTMLSpanElement>(null);
@@ -87,6 +135,10 @@ function FieldHelp({ label, description }: { label: string; description: string 
 function ConfigFieldInput({ field, value, onChange }: ConfigFieldProps) {
   const className =
     'w-full rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring';
+
+  if (field.kind === 'schema') {
+    return <SchemaFieldInput field={field} onChange={onChange} value={value} />;
+  }
 
   if (field.kind === 'list') {
     return (
@@ -184,9 +236,14 @@ export function Node({
         <div className="flex min-w-0 items-center gap-2">
           <span
             aria-hidden="true"
-            className="size-2.5 shrink-0 rounded-full"
-            style={{ backgroundColor: definition.color }}
-          />
+            className="node-type-icon-badge"
+            style={{
+              backgroundColor: `color-mix(in oklch, ${definition.color} 13%, var(--card))`,
+              color: definition.color,
+            }}
+          >
+            <NodeTypeIcon type={node.data.nodeType} />
+          </span>
           <div className="min-w-0">
             <p className="text-xs font-medium text-muted-foreground">NODE DETAILS</p>
             <h2 className="truncate text-sm font-semibold">{definition.label}</h2>

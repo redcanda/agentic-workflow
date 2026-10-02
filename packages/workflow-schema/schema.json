@@ -69,7 +69,76 @@
           "type": "object"
         }
       },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "type": {
+                "const": "start"
+              }
+            },
+            "required": ["type"]
+          },
+          "then": {
+            "properties": {
+              "config": {
+                "properties": {
+                  "payload": {
+                    "$ref": "#/$defs/jsonSchemaObject"
+                  }
+                }
+              }
+            }
+          }
+        }
+      ],
       "additionalProperties": false
+    },
+
+    "jsonSchemaObject": {
+      "type": "object",
+      "required": ["type", "properties", "additionalProperties"],
+      "properties": {
+        "type": {
+          "const": "object"
+        },
+        "properties": {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/$defs/jsonSchemaProperty"
+          }
+        },
+        "required": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "uniqueItems": true
+        },
+        "additionalProperties": {
+          "const": false
+        }
+      },
+      "additionalProperties": false
+    },
+
+    "jsonSchemaProperty": {
+      "oneOf": [
+        {
+          "type": "object",
+          "maxProperties": 0
+        },
+        {
+          "type": "object",
+          "required": ["type"],
+          "properties": {
+            "type": {
+              "enum": ["string", "number", "boolean", "null"]
+            }
+          },
+          "additionalProperties": false
+        }
+      ]
     },
 
     "edge": {
