@@ -1,6 +1,20 @@
+.workflow-canvas-node-content {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  text-align: center;
+}
+
 .workflow-canvas-node-label {
   display: block;
-  text-align: center;
+  line-height: 1.2;
+}
+
+.workflow-canvas-node-type {
+  color: var(--muted-foreground);
+  font-size: 0.65rem;
+  font-weight: 500;
+  line-height: 1.2;
 }
 
 .workflow-canvas-output {

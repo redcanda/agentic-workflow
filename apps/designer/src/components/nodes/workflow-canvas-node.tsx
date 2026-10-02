@@ -6,7 +6,7 @@ import {
   type Node as FlowNode,
   type NodeProps,
 } from '@xyflow/react';
-import { getNodeOutputs } from './registry';
+import { getNodeOutputs, NODE_DEFINITIONS } from './registry';
 import type { WorkflowNodeData } from './node';
 import './workflow-canvas-node.css';
 
@@ -15,6 +15,7 @@ type WorkflowCanvasFlowNode = FlowNode<WorkflowNodeData, 'workflow'>;
 export function WorkflowCanvasNode({ id, data }: NodeProps<WorkflowCanvasFlowNode>) {
   const updateNodeInternals = useUpdateNodeInternals();
   const outputs = getNodeOutputs(data.nodeType, data.config);
+  const definition = NODE_DEFINITIONS[data.nodeType];
   const outputHandleKey = outputs.map((output) => output.id).join('\0');
 
   useLayoutEffect(() => {
@@ -26,7 +27,12 @@ export function WorkflowCanvasNode({ id, data }: NodeProps<WorkflowCanvasFlowNod
       {data.nodeType !== 'start' && (
         <Handle aria-label="Input" position={Position.Top} type="target" />
       )}
-      <span className="workflow-canvas-node-label">{data.label}</span>
+      <div className="workflow-canvas-node-content">
+        <span className="workflow-canvas-node-label">{data.label}</span>
+        {data.nodeType !== 'start' && data.nodeType !== 'end' && (
+          <span className="workflow-canvas-node-type">{definition.label}</span>
+        )}
+      </div>
       {outputs.map((output, index) => {
         const left = `${((index + 1) / (outputs.length + 1)) * 100}%`;
 

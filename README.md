@@ -45,6 +45,8 @@ npm run build
   the left palette. Connect nodes by dragging from one node handle to another.
 - Canvas nodes use a subtle raised-card treatment; selecting a node adds a visible
   focus ring while retaining its shadow.
+- Canvas nodes display the editable label first and node type beneath it, except
+  Start and End, whose type is omitted.
 - Connections follow node-type output rules: Start has one outgoing route and no
   incoming routes, End has no outgoing route, If has separate True and Else routes,
   Switch has one route per configured case plus Default, and other nodes have one

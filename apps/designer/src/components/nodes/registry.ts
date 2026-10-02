@@ -99,7 +99,7 @@ export const NODE_DEFINITIONS: Record<WorkflowNodeType, NodeDefinition> = {
   },
   condition: {
     type: 'condition',
-    label: 'If',
+    label: 'Condition',
     description: 'Branch based on a condition',
     color: '#f59e0b',
     config: { expression: '' },
