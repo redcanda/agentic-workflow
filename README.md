@@ -1,5 +1,13 @@
 # agentic-workflow
 
+## Implementation
+Designer
+- typescript
+- UI: react + react flow + shadcn/ui + tailwind CSS
+
+Engine
+- python
+
 ## Running
 Terminal 1
 cd apps/designer
