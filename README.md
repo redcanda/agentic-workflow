@@ -41,10 +41,11 @@ npm run build
 ## Designer features
 
 - The canvas starts with a sample **Start → AI Agent → End** workflow.
-- Add nodes from the left palette. Connect nodes by dragging from one node handle to
-  another.
+- Add Start, End, LLM, If, Switch, HTTP Request, RAG, Code, and Approval nodes from
+  the left palette. Connect nodes by dragging from one node handle to another.
 - Select a node to open its details drawer on the right. The drawer shows its type,
-  ID, position, and connection count, and lets you edit its label.
+  ID, position, and connection count, and lets you edit its label and
+  type-specific configuration.
 - Close the drawer with its X button. Resize it by dragging the left divider, or
   focus the divider and use the arrow keys. Hold Shift for larger keyboard steps;
   Home and End set the minimum and maximum widths.
@@ -52,8 +53,10 @@ npm run build
 - The current designer keeps edits in browser memory; saving, exporting, and
   connecting to the engine are not implemented yet.
 
-The schema includes node types beyond the ones currently available in the designer.
-The schema does not yet define per-node `config` fields.
+The designer maps **LLM** to the schema's `agent` type and **If** to `condition`.
+Each node's editable settings are held in its `config` object. The schema allows
+type-specific configuration as an object but does not yet validate individual config
+fields.
 
 ## Project layout
 
@@ -63,7 +66,7 @@ apps/
     src/
       components/
         drawer/       Resizable node-details panel
-        nodes/        Selected-node details content
+        nodes/        Node type registry and type-specific detail fields
         ui/           Reusable UI components
       App.tsx         Designer layout and workflow state
       App.css         Designer and React Flow canvas styles
@@ -119,11 +122,99 @@ packages/
 - A workflow currently requires `version`, `name`, `nodes`, and `edges`.
 - Nodes require an `id`, supported `type`, and numeric `position` (`x` and `y`);
   edges require an `id`, `source`, and `target`.
+- Add node types to `components/nodes/registry.ts` so the palette, color, defaults,
+  and type-specific inspector fields have one source of truth. Use only node types
+  permitted by the schema, and map friendly UI labels to their schema type there.
+- Give each node type its own appropriate configuration fields and sensible
+  defaults. Keep configuration values under `node.data.config` so they can be
+  translated to the schema's node `config` when workflow serialization is added.
 - Keep additional node and edge fields within the schema. Update the schema and
   example workflows alongside changes to the workflow data format.
+
+## Software engineering guidance
+
+Use these as practical defaults for contributions to this repository:
+
+- **Solve the current problem simply.** Prefer the smallest clear implementation
+  that meets an observed requirement. Delay speculative extension points and
+  abstractions until a real use case needs them; see Martin Fowler's explanation
+  of [YAGNI](https://martinfowler.com/bliki/Yagni.html).
+- **Keep one source of truth for UI state.** Derive values from existing React state
+  instead of storing duplicate state. Keep data flow explicit, and move related,
+  increasingly complex state transitions into a reducer only when that complexity
+  is present. See React's guidance on
+  [managing state](https://react.dev/learn/managing-state).
+- **Make boundaries explicit.** Validate workflow JSON at import/API boundaries.
+  Keep React Flow's interactive canvas state separate from the persisted workflow
+  format; map between them explicitly rather than saving library-specific fields.
+- **Preserve type safety.** Keep TypeScript strict, describe component and workflow
+  data with types, and avoid suppressing errors with broad casts. TypeScript's
+  [Handbook](https://www.typescriptlang.org/docs/handbook/intro.html) explains its
+  role in catching type errors before runtime.
+- **Handle failures visibly.** Surface validation, network, and execution failures
+  through a clear error result or user-facing state. Don't silently discard errors
+  or return success-shaped fallbacks.
+- **Test behavior at the appropriate level.** Unit-test isolated transformations
+  and node logic, integration-test schema/API/execution boundaries, and reserve
+  browser tests for important user workflows. Keep tests automated and focused;
+  Martin Fowler's [practical test pyramid](https://martinfowler.com/articles/practical-test-pyramid.html)
+  discusses balancing test levels.
+- **Make changes reviewable.** Keep changes cohesive, preserve nearby conventions,
+  and verify them with the narrowest relevant checks (for example,
+  `npm run build`). Google's [code review standard](https://google.github.io/eng-practices/review/reviewer/standard.html)
+  emphasizes improving maintainability and overall code health rather than
+  demanding perfection.
+
+## Design patterns
+
+Patterns are tools for recurring problems, not requirements to apply everywhere.
+Choose one when it makes current behavior easier to understand, extend, or test;
+otherwise prefer straightforward functions and components.
+
+- **Composition (designer UI):** Assemble the canvas, palette, drawer, and node
+  details from focused components. Pass data and callbacks through clear props;
+  avoid coupling reusable UI to the whole application state.
+- **Controlled state (designer UI):** Keep workflow nodes and edges in the
+  React Flow state already owned by the application. Inspector fields should
+  receive their current value and report edits through callbacks rather than
+  maintaining a competing copy.
+- **Adapter / boundary mapper (workflow format):** When persistence is added,
+  explicitly translate between React Flow nodes/edges and the schema's workflow
+  JSON. This keeps editor-only data out of saved files and makes schema evolution
+  easier to validate.
+- **Strategy (engine node execution):** If node implementations need different
+  execution algorithms behind the same contract, use a typed node-handler
+  interface and dispatch by node type. Keep handlers independently testable; avoid
+  creating a class hierarchy if a simple function map is sufficient.
+- **Registry (engine handlers):** A node-type-to-handler map can make supported
+  node types explicit and avoid a growing chain of conditionals. Introduce it when
+  the engine has enough handlers to benefit; keep it aligned with schema-supported
+  types and report unsupported types explicitly.
+
+For pattern definitions and trade-offs, see the
+[design-pattern catalog](https://refactoring.guru/design-patterns/catalog).
+Its [overview](https://refactoring.guru/design-patterns/what-is-pattern) describes
+patterns as adaptable solutions rather than copy-and-paste code.
 
 ## Engine status
 
 The Python engine is not ready to run yet: its package/dependency configuration and
 application entry point still need implementation. Add the Python project setup
 before documenting or relying on an engine start command.
+
+## Further reading
+
+- [React: Thinking in React](https://react.dev/learn/thinking-in-react) — component
+  boundaries and building UI from a design.
+- [React: Managing State](https://react.dev/learn/managing-state) — structuring
+  state and avoiding redundant state.
+- [TypeScript Handbook](https://www.typescriptlang.org/docs/handbook/intro.html) —
+  types and compiler behavior.
+- [Google Engineering Practices: Code Review Standard](https://google.github.io/eng-practices/review/reviewer/standard.html) —
+  maintainability and review principles.
+- [Martin Fowler: YAGNI](https://martinfowler.com/bliki/Yagni.html) — avoid
+  speculative features and abstractions.
+- [Martin Fowler: Practical Test Pyramid](https://martinfowler.com/articles/practical-test-pyramid.html) —
+  balancing automated test levels.
+- [Refactoring.Guru: Design Patterns](https://refactoring.guru/design-patterns/catalog) —
+  pattern catalog and examples.

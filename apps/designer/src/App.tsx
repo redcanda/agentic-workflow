@@ -15,38 +15,47 @@ import {
 import { Button } from './components/ui/button';
 import { Drawer } from './components/drawer/drawer';
 import './App.css';
-import { Node as NodeComponent } from './components/nodes/node';
+import { Node as NodeDetails } from './components/nodes/node';
+import {
+  isWorkflowNodeType,
+  NODE_DEFINITIONS,
+  WORKFLOW_NODE_TYPES,
+  type WorkflowNodeType,
+} from './components/nodes/registry';
+import type { WorkflowNodeData } from './components/nodes/node';
 
-type WorkflowNodeType = 'start' | 'agent' | 'condition' | 'http' | 'end';
-
-const nodeColors: Record<WorkflowNodeType, string> = {
-  start: '#10b981',
-  agent: '#6366f1',
-  condition: '#f59e0b',
-  http: '#0ea5e9',
-  end: '#f43f5e',
-};
-
-const initialNodes: Node[] = [
+const initialNodes: Node<WorkflowNodeData>[] = [
   {
     id: 'start',
     type: 'input',
     position: { x: 80, y: 170 },
-    data: { label: 'Start' },
-    style: { borderColor: nodeColors.start },
+    data: {
+      label: NODE_DEFINITIONS.start.label,
+      nodeType: 'start',
+      config: { ...NODE_DEFINITIONS.start.config },
+    },
+    style: { borderColor: NODE_DEFINITIONS.start.color },
   },
   {
     id: 'agent',
     position: { x: 360, y: 170 },
-    data: { label: 'AI Agent' },
-    style: { borderColor: nodeColors.agent },
+    data: {
+      label: NODE_DEFINITIONS.agent.label,
+      nodeType: 'agent',
+      config: { ...NODE_DEFINITIONS.agent.config },
+    },
+    style: { borderColor: NODE_DEFINITIONS.agent.color },
   },
   {
     id: 'end',
     type: 'output',
     position: { x: 640, y: 170 },
-    data: { label: 'End' },
-    style: { borderColor: nodeColors.end },
+    data: {
+      label: NODE_DEFINITIONS.end.label,
+      nodeType: 'end',
+      config: { ...NODE_DEFINITIONS.end.config },
+    },
+    style: { borderColor: NODE_DEFINITIONS.end.color },
   },
 ];
 
@@ -55,24 +64,15 @@ const initialEdges: Edge[] = [
   { id: 'agent-end', source: 'agent', target: 'end', animated: true },
 ];
 
-const nodeOptions: { type: WorkflowNodeType; label: string }[] = [
-  { type: 'start', label: 'Start' },
-  { type: 'agent', label: 'AI Agent' },
-  { type: 'condition', label: 'Condition' },
-  { type: 'http', label: 'HTTP Request' },
-  { type: 'end', label: 'End' },
-];
+const nodeOptions = WORKFLOW_NODE_TYPES.map((type) => NODE_DEFINITIONS[type]);
 
 export default function App() {
-  const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
+  const [nodes, setNodes, onNodesChange] = useNodesState<Node<WorkflowNodeData>>(initialNodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
   const [workflowName, setWorkflowName] = useState('Untitled workflow');
   const nextNodeId = useRef(1);
   const selectedEdgeCount = edges.filter((edge) => edge.selected).length;
   const selectedNode = nodes.find((node) => node.selected);
-  const selectedNodeType = selectedNode
-    ? nodeOptions.find(({ type }) => type === selectedNode.id.split('-')[0])?.type
-    : undefined;
 
   const onConnect = useCallback(
     (connection: Connection) => {
@@ -83,7 +83,8 @@ export default function App() {
     [setEdges],
   );
 
-  const addNode = (type: WorkflowNodeType, label: string) => {
+  const addNode = (type: WorkflowNodeType) => {
+    const definition = NODE_DEFINITIONS[type];
     const id = `${type}-${nextNodeId.current++}`;
     const flowType = type === 'start' ? 'input' : type === 'end' ? 'output' : 'default';
 
@@ -93,10 +94,12 @@ export default function App() {
         id,
         type: flowType,
         position: { x: 180 + currentNodes.length * 36, y: 80 + (currentNodes.length % 4) * 90 },
-        data: { label },
-        style: {
-          borderColor: nodeColors[type],
+        data: {
+          label: definition.label,
+          nodeType: type,
+          config: { ...definition.config },
         },
+        style: { borderColor: definition.color },
       },
     ]);
   };
@@ -119,6 +122,24 @@ export default function App() {
       currentNodes.map((node) =>
         node.id === selectedNode.id
           ? { ...node, data: { ...node.data, label } }
+          : node,
+      ),
+    );
+  };
+
+  const updateSelectedNodeConfig = (key: string, value: string | number) => {
+    if (!selectedNode) return;
+
+    setNodes((currentNodes) =>
+      currentNodes.map((node) =>
+        node.id === selectedNode.id
+          ? {
+              ...node,
+              data: {
+                ...node.data,
+                config: { ...node.data.config, [key]: value },
+              },
+            }
           : node,
       ),
     );
@@ -173,17 +194,17 @@ export default function App() {
             <h2 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
               Nodes
             </h2>
-            {nodeOptions.map(({ type, label }) => (
+            {nodeOptions.map(({ type, label, color }) => (
               <Button
                 className="w-full justify-start gap-2"
                 key={type}
-                onClick={() => addNode(type, label)}
+                onClick={() => addNode(type)}
                 variant="outline"
               >
                 <span
                   aria-hidden="true"
                   className="size-2.5 rounded-full"
-                  style={{ backgroundColor: nodeColors[type] }}
+                  style={{ backgroundColor: color }}
                 />
                 {label}
                 <span className="ml-auto text-muted-foreground">+</span>
@@ -212,10 +233,10 @@ export default function App() {
             <MiniMap
               className="!overflow-hidden !rounded-lg !border !bg-card"
               nodeColor={(node) => {
-                const nodeType = nodeOptions.find(
-                  ({ type }) => type === node.id.split('-')[0],
-                )?.type;
-                return nodeType ? nodeColors[nodeType] : '#94a3b8';
+                const nodeType = node.data.nodeType;
+                return isWorkflowNodeType(nodeType)
+                  ? NODE_DEFINITIONS[nodeType].color
+                  : '#94a3b8';
               }}
               maskColor="rgb(15 23 42 / 8%)"
             />
@@ -223,16 +244,11 @@ export default function App() {
         </section>
 
         {selectedNode && (
-          <Drawer
-          >
-            <NodeComponent
+          <Drawer>
+            <NodeDetails
               edges={edges}
               node={selectedNode}
-              nodeType={
-                selectedNodeType
-                  ? nodeOptions.find(({ type }) => type === selectedNodeType)?.label ?? selectedNodeType
-                  : selectedNode.type ?? 'Workflow node'
-              }
+              onConfigChange={updateSelectedNodeConfig}
               onClose={closeNodeDetails}
               onLabelChange={updateSelectedNodeLabel}
             />
