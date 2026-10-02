@@ -48,7 +48,8 @@ npm run build
 - Connections follow node-type output rules: Start has one outgoing route and no
   incoming routes, End has no outgoing route, If has separate True and Else routes,
   Switch has one route per configured case plus Default, and other nodes have one
-  outgoing route. Each output route can be connected once.
+  outgoing route. Each output route can be connected once. If and Switch edge labels
+  identify the branch used by each connection.
 - Select a node to open its details drawer on the right. The drawer shows its type,
   ID, position, and connection count, and lets you edit its label and
   type-specific configuration.
@@ -123,6 +124,9 @@ packages/
   Put project-specific node, edge, and canvas styling in `App.css`. Preserve React
   Flow's positioning and interaction behavior when styling nodes; use shadows and
   outlines for depth and selection rather than overriding its transforms.
+- When a custom node adds, removes, or moves handles dynamically, call React Flow's
+  `useUpdateNodeInternals` after the rendered handles change so connection hit-testing
+  and validation use the current handle positions.
 
 ### Workflow data
 

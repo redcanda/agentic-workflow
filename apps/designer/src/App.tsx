@@ -4,7 +4,6 @@ import {
   Background,
   BackgroundVariant,
   Controls,
-  MarkerType,
   MiniMap,
   ReactFlow,
   useEdgesState,
@@ -27,12 +26,7 @@ import {
 } from './components/nodes/registry';
 import type { WorkflowNodeData } from './components/nodes/node';
 
-const edgeArrow = {
-  type: MarkerType.Arrow,
-  width: 14,
-  height: 14,
-  color: 'var(--primary)',
-};
+const edgeArrow = 'workflow-edge-arrow';
 
 const nodeTypes = { workflow: WorkflowCanvasNode };
 
@@ -141,17 +135,36 @@ export default function App() {
     (connection: Connection) => {
       if (!isConnectionValid(connection)) return;
 
+      const source = nodes.find((node) => node.id === connection.source);
+      const sourceOutput =
+        source && isWorkflowNodeType(source.data.nodeType)
+          ? getNodeOutputs(source.data.nodeType, source.data.config).find(
+              (output) => output.id === connection.sourceHandle,
+            )
+          : undefined;
+      const edgeLabel =
+        source &&
+        isWorkflowNodeType(source.data.nodeType) &&
+        (source.data.nodeType === 'condition' || source.data.nodeType === 'switch')
+          ? sourceOutput?.label
+          : undefined;
+
       setEdges((currentEdges) =>
         addEdge(
           {
             ...connection,
+            label: edgeLabel,
+            labelStyle: { fill: 'var(--foreground)', fontSize: 10 },
+            labelBgStyle: { fill: 'var(--background)', fillOpacity: 0.95 },
+            labelBgPadding: [4, 2],
+            labelBgBorderRadius: 4,
             markerEnd: edgeArrow,
           },
           currentEdges,
         ),
       );
     },
-    [isConnectionValid, setEdges],
+    [isConnectionValid, nodes, setEdges],
   );
 
   const addNode = (type: WorkflowNodeType) => {
@@ -308,6 +321,29 @@ export default function App() {
         </aside>
 
         <section aria-label="Workflow canvas" className="min-w-0 flex-1">
+          <svg aria-hidden="true" className="designer-svg-definitions">
+            <defs>
+              <marker
+                id={edgeArrow}
+                markerHeight="20"
+                markerUnits="userSpaceOnUse"
+                markerWidth="20"
+                orient="auto"
+                refX="0"
+                refY="0"
+                viewBox="-10 -10 20 20"
+              >
+                <polyline
+                  fill="none"
+                  points="-8,-2 0,0 -8,2"
+                  stroke="var(--primary)"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth="1.5"
+                />
+              </marker>
+            </defs>
+          </svg>
           <ReactFlow
             nodes={nodes}
             edges={edges}

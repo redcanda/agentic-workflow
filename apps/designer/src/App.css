@@ -2,6 +2,14 @@
   --xy-edge-stroke-selected: var(--primary);
 }
 
+.designer-svg-definitions {
+  position: absolute;
+  width: 0;
+  height: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
 .designer-top-pane {
   border-bottom: 1px solid color-mix(in oklch, var(--border) 70%, white);
   box-shadow:
@@ -71,12 +79,6 @@
   stroke: var(--primary);
   stroke-width: 1.5;
   stroke-linecap: round;
-}
-
-.react-flow__arrowhead .arrow {
-  transform: scaleY(0.6);
-  transform-box: fill-box;
-  transform-origin: center;
 }
 
 .react-flow__edge.selected .react-flow__edge-path {
